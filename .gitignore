@@ -1,0 +1,108 @@
+# Proyecto reproducible: versionar codigo, specs, docs, maestros, fuente raw publica
+# e interfaces publicables; ignorar salidas regenerables, temporales y caches.
+
+# R / RStudio
+.Rhistory
+.RData
+.Ruserdata
+.Rproj.user/
+
+# Sistema / editores
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# Logs / temporales
+*.log
+*.tmp
+*.bak
+*.out
+
+# Quarto / render intermedio
+.quarto/
+*_files/
+*.utf8.md
+*.knit.md
+
+# Root renders no necesarios
+README.html
+
+# Binarios regenerables por defecto
+*.doc
+*.docx
+*.ppt
+*.pptx
+*.pptm
+*.aux
+*.toc
+*.lof
+*.lot
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+
+# Datos: ignorar todo y reabrir solo la fuente normativa
+data/**
+!data/
+!data/raw/
+!data/raw/standard_life_table/
+!data/raw/standard_life_table/life_expectancy_standard_who_gbd.csv
+
+# Configuracion y specs
+!config/
+!config/**/*.yml
+!config/**/*.yaml
+!config/**/*.json
+!config/**/*.csv
+!config/**/*.txt
+
+# Codigo fuente
+!R/
+!R/**/*.R
+!scripts/
+!scripts/**/*.R
+
+# Documentacion y maestros
+!README.md
+!README.qmd
+!LICENSE
+!*.Rproj
+!.gitignore
+!AGENTS.md
+!docs/
+!docs/**/*.md
+!docs/**/*.qmd
+!maestros/
+!maestros/**/*.md
+
+# Reports: ignorar por defecto y reabrir solo fuentes
+reports/**
+!reports/
+!reports/**/*.qmd
+
+# Outputs auxiliares regenerables
+outputs/**
+
+# Tabulares y binarios regenerables fuera de data/
+*.csv
+*.tsv
+*.xlsx
+*.xls
+*.ods
+*.rds
+*.rda
+*.parquet
+*.feather
+*.json
+
+# Excepciones permitidas fuera de data/
+!config/**/*.csv
+!config/**/*.json
+
+# Temporales especificos
+tmp/**
+**/tmp_qc_*/
+**/tmp_qc_pdf_*/
+**/tmp_qc_standard_life_table_*/

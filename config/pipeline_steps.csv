@@ -1,0 +1,9 @@
+step_order,step_id,script_path_canonical,phase_group,profile_full,profile_core,profile_reports,blocking,notes,primary_dataset_id
+10,setup_packages,scripts/setup_packages.R,core,TRUE,TRUE,FALSE,TRUE,Verifica dependencias del proyecto,project_runtime
+20,build_abridged,scripts/build_standard_life_table_abridged.R,core,TRUE,TRUE,FALSE,TRUE,Normaliza la tabla abridged,life_table_standard_reference_abridged
+30,build_single_age,scripts/build_standard_life_table_single_age.R,core,TRUE,TRUE,FALSE,TRUE,Construye la tabla single-age final y el benchmark de cola,life_table_standard_reference_single_age
+40,qc_standard_life_table,scripts/qc_standard_life_table.R,core,TRUE,TRUE,FALSE,TRUE,Corre QC estructural y terminal,qc_standard_life_table
+50,export_final,scripts/export_standard_life_table_final.R,core,TRUE,TRUE,FALSE,TRUE,Exporta datasets finales y diccionarios,life_table_standard_reference_single_age
+60,render_audit_report,scripts/render_audit_report.R,reports,TRUE,FALSE,TRUE,FALSE,Renderiza el informe metodologico,audit_standard_life_table
+70,build_terminal_module,scripts/build_terminal_module.R,reports,TRUE,FALSE,TRUE,FALSE,Construye el modulo terminal y sus graficos,standard_life_table_terminal_module
+80,build_portal,scripts/build_standard_life_table_portal.R,reports,TRUE,FALSE,TRUE,FALSE,Construye la web final y los tomos,standard_life_table_portal

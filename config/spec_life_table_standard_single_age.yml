@@ -1,0 +1,61 @@
+dataset_id: "life_table_standard_reference_single_age"
+table_name: "life_table_standard_single_age_result"
+
+primary_key: ["standard_source", "standard_version", "sex_id", "exact_age"]
+
+required_columns:
+  standard_source: "character"
+  standard_version: "character"
+  sex_id: "integer"
+  sex_source_value: "character"
+  exact_age: "integer"
+  age_start: "integer"
+  age_end: "integer"
+  age_interval_width: "integer"
+  age_interval_open: "logical"
+  age_group_label: "character"
+  ex: "numeric"
+  units: "character"
+
+constraints:
+  sex_id:
+    allowed_values: [0, 8507, 8532]
+    allow_na: false
+  exact_age: {min: 0, max: 110, allow_na: false}
+  age_start: {min: 0, max: 110, allow_na: false}
+  age_end: {min: 1, max: 111, allow_na: false}
+  age_interval_width: {min: 1, max: 1, allow_na: false}
+  ex: {min: 0, allow_na: false}
+  standard_source: {allow_na: false}
+  standard_version: {allow_na: false}
+  sex_source_value: {allow_na: false}
+  age_interval_open: {allow_na: false}
+  age_group_label: {allow_na: false}
+  units: {allow_na: false}
+
+dictionary:
+  standard_source: {label: "Fuente del estandar de vida", omop_domain_id: "metadata", is_omop_concept_id: false}
+  standard_version: {label: "Version del estandar", omop_domain_id: "metadata", is_omop_concept_id: false}
+  sex_id: {label: "Sexo (concept id OMOP)", allowed_values_label: "0=Persons; 8507=Male; 8532=Female", omop_domain_id: "person", is_omop_concept_id: true}
+  sex_source_value: {label: "Sexo (valor fuente)", omop_domain_id: "person", is_omop_concept_id: false}
+  exact_age: {label: "Edad exacta x; en 110 representa el inicio del grupo abierto final 110+", units: "years", omop_domain_id: "observation", is_omop_concept_id: false}
+  age_start: {label: "Edad al inicio del intervalo exportado", units: "years", omop_domain_id: "observation", is_omop_concept_id: false}
+  age_end: {label: "Edad al final del intervalo exportado", units: "years", omop_domain_id: "observation", is_omop_concept_id: false}
+  age_interval_width: {label: "Ancho del intervalo anual exportado", units: "years", omop_domain_id: "observation", is_omop_concept_id: false}
+  age_interval_open: {label: "Indicador del grupo abierto final", omop_domain_id: "metadata", is_omop_concept_id: false}
+  age_group_label: {label: "Etiqueta de edad exportada", omop_domain_id: "metadata", is_omop_concept_id: false}
+  ex: {label: "Esperanza de vida remanente e(x)", units: "years", omop_domain_id: "measurement", is_omop_concept_id: false}
+  units: {label: "Unidad de e(x)", omop_domain_id: "unit", is_omop_concept_id: false}
+
+policy:
+  age_definition: "Edad exacta simple (single age) al inicio del intervalo [x, x+1). En exact_age = 110, el registro representa el grupo abierto final 110+."
+  year_definition: "No aplica: tabla estandar fija, sin dimension temporal."
+  location_definition: "No aplica: tabla estandar global de referencia, sin dimension espacial."
+  extrapolation:
+    method: "Expansion single-age final con cola interna 110:125 calibrada por ley de mortalidad avanzada y benchmark reproducible en espacio ex."
+    details:
+      - "Los knots fraccionarios infantiles no se usan para la expansion anual; se preservan los knots enteros abridged."
+      - "Hasta 85 se mantiene una expansion anualizada por tramos que preserva exactamente los knots enteros."
+      - "Desde 85 se ajusta una cola interna hasta 125 usando una ley de mortalidad avanzada calibrada para reproducir e(85)."
+      - "El output contractual sigue exportando 0:109 y 110+; ex(110+) es positiva y se deriva de la cola interna."
+      - "La comparacion ex-space vs ley de mortalidad queda automatizada en QC y reportes, pero no multiplica salidas contractuales."

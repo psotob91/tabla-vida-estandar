@@ -1,0 +1,79 @@
+---
+format:
+  gfm:
+    output-file: README.md
+execute:
+  echo: false
+  warning: false
+  message: false
+---
+
+# tabla-vida-estandar
+
+Pipeline reproducible para construir una tabla de vida estándar abridged y su versión single-age final, con contrato estable, QC estructural, evaluación terminal y portal web.
+
+## Inicio rápido
+
+```powershell
+Rscript .\scripts\run_preflight_checks.R
+Rscript .\scripts\run_pipeline.R --profile full --clean-first
+Rscript .\scripts\compare_contract_baseline.R data/derived/qc/standard_life_table/baseline_contract_YYYYMMDD_HHMMSS
+```
+
+## Mapa del proyecto
+
+| Quiero ver | Ir a |
+|---|---|
+| Cómo correrlo por primera vez | `docs/quickstart_first_use.md` |
+| Manual operativo completo | `docs/operations_manual.md` |
+| Manual Docker | `docs/docker_manual.md` |
+| Contrato final de outputs | `docs/DATA_CONTRACT.md` |
+| Runbook y validación | `docs/RUNBOOK.md` |
+| Portal principal | `reports/qc_standard_life_table/index.html` |
+| Informe metodológico | `reports/auditoria_tabla_vida_estandar.html` |
+| Pseudocódigo del pipeline | `docs/pipeline_pseudocode.md` |
+| Repo mínimo para GitHub | `docs/repo_minimal_release_manifest.md` |
+| Continuidad con agente | `maestros/README_MAESTROS.md` |
+| Outputs finales contractuales | `data/final/standard_life_table/` |
+
+## Dos rutas de uso
+
+### Ruta clásica del analista
+
+1. `README.md`
+2. `docs/quickstart_first_use.md`
+3. `docs/operations_manual.md`
+4. `docs/docker_manual.md`
+
+### Ruta asistida por agente
+
+1. `AGENTS.md`
+2. `maestros/README_MAESTROS.md`
+3. `docs/MASTERS_GOVERNANCE.md`
+4. `docs/operations_manual.md`
+
+## Contrato final
+
+- abridged contractual
+- single-age contractual con `0:109` y `110+`
+- `110+` como último grupo abierto
+- `ex(110+) > 0`
+- cola interna modelada hasta `125`
+
+## Qué queda en GitHub
+
+La versión mínima final conserva:
+
+- código fuente y configuración final
+- documentación operativa y contractual
+- maestros de continuidad
+- fuente raw pública
+- portal final y reporte metodológico publicables
+
+Los outputs tabulares regenerables y demás artefactos transaccionales se regeneran localmente.
+
+## Regenerar el README
+
+```powershell
+quarto render README.qmd
+```

@@ -1,0 +1,63 @@
+dataset_id: "life_table_standard_reference_abridged"
+table_name: "life_table_standard_abridged_result"
+
+primary_key: ["standard_source", "standard_version", "sex_id", "age_start"]
+
+required_columns:
+  standard_source: "character"
+  standard_version: "character"
+
+  sex_id: "integer"
+  sex_source_value: "character"
+
+  age_start: "numeric"
+  age_end: "numeric"
+  age_interval_width: "numeric"
+  age_interval_open: "logical"
+  age_group_label: "character"
+
+  ex: "numeric"
+  units: "character"
+
+constraints:
+  sex_id:
+    allowed_values: [0, 8507, 8532]
+    allow_na: false
+
+  age_start: {min: 0, max: 85, allow_na: false}
+  age_end: {min: 0, max: 120, allow_na: false}
+  age_interval_width: {min: 0, max: 120, allow_na: false}
+  ex: {min: 0, allow_na: false}
+
+  standard_source:
+    allow_na: false
+  standard_version:
+    allow_na: false
+  sex_source_value:
+    allow_na: false
+  age_interval_open:
+    allow_na: false
+  age_group_label:
+    allow_na: false
+  units:
+    allow_na: false
+
+dictionary:
+  standard_source: {label: "Fuente del estándar de vida", omop_domain_id: "metadata", is_omop_concept_id: false}
+  standard_version: {label: "Versión del estándar", omop_domain_id: "metadata", is_omop_concept_id: false}
+  sex_id: {label: "Sexo (concept id OMOP)", allowed_values_label: "0=Persons; 8507=Male; 8532=Female", omop_domain_id: "person", is_omop_concept_id: true}
+  sex_source_value: {label: "Sexo (valor fuente)", omop_domain_id: "person", is_omop_concept_id: false}
+  age_start: {label: "Edad al inicio del intervalo", units: "years", omop_domain_id: "observation", is_omop_concept_id: false}
+  age_end: {label: "Edad al final del intervalo", units: "years", omop_domain_id: "observation", is_omop_concept_id: false}
+  age_interval_width: {label: "Ancho del intervalo de edad", units: "years", omop_domain_id: "observation", is_omop_concept_id: false}
+  age_interval_open: {label: "Indicador de intervalo abierto final", omop_domain_id: "metadata", is_omop_concept_id: false}
+  age_group_label: {label: "Etiqueta del grupo etario", omop_domain_id: "metadata", is_omop_concept_id: false}
+  ex: {label: "Esperanza de vida remanente e(x)", units: "years", omop_domain_id: "measurement", is_omop_concept_id: false}
+  units: {label: "Unidad de e(x)", omop_domain_id: "unit", is_omop_concept_id: false}
+
+policy:
+  age_definition: "Edad al inicio del intervalo de la tabla estándar abridged."
+  year_definition: "No aplica: tabla estándar fija, sin dimensión temporal."
+  location_definition: "No aplica: tabla estándar global de referencia, sin dimensión espacial."
+  extrapolation:
+    method: "No aplica en la tabla abridged normalizada; se conserva la fuente estándar original."

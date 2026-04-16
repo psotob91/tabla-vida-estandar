@@ -1,0 +1,858 @@
+﻿---
+title: "Anexo metodológico: tabla de vida estándar"
+author: "Equipo de análisis"
+date: today
+lang: es
+crossref:
+  fig-title: "Figura"
+  tbl-title: "Tabla"
+format:
+  html:
+    lang: es
+    toc: true
+    toc-depth: 3
+    number-sections: true
+    embed-resources: true
+execute:
+  echo: false
+  warning: false
+  message: false
+---
+
+```{r setup, include=FALSE}
+library(data.table)
+library(knitr)
+library(here)
+library(openxlsx)
+library(rmarkdown)
+
+root <- here::here()
+
+read_csv_if_exists <- function(path) {
+  full <- file.path(root, path)
+  if (!file.exists(full)) return(data.table())
+  fread(full, encoding = "UTF-8")
+}
+
+abr <- read_csv_if_exists("data/final/standard_life_table/life_table_standard_reference_abridged.csv")
+sa <- read_csv_if_exists("data/final/standard_life_table/life_table_standard_reference_single_age.csv")
+selected_methods <- read_csv_if_exists("data/derived/qc/standard_life_table/single_age_tail_selected_methods.csv")
+compare_summary <- read_csv_if_exists("data/derived/qc/standard_life_table/baseline_compare_summary.csv")
+
+abr_display <- copy(abr)[, .(
+  Fuente = standard_source,
+  `Versión` = standard_version,
+  Sexo = sex_source_value,
+  Edad = age_group_label,
+  `e(x)` = round(ex, 4)
+)]
+
+sa_display <- copy(sa)[, .(
+  Fuente = standard_source,
+  `Versión` = standard_version,
+  Sexo = sex_source_value,
+  Edad = exact_age,
+  `e(x)` = round(ex, 4)
+)]
+
+download_dir <- file.path(root, "reports", "anexo_downloads")
+dir.create(download_dir, recursive = TRUE, showWarnings = FALSE)
+
+fwrite(abr_display, file.path(download_dir, "tabla_referencia_abridged_resumen.csv"))
+fwrite(sa_display, file.path(download_dir, "tabla_referencia_single_age_resumen.csv"))
+openxlsx::write.xlsx(
+  list(abridged = abr_display),
+  file.path(download_dir, "tabla_referencia_abridged_resumen.xlsx"),
+  overwrite = TRUE
+)
+openxlsx::write.xlsx(
+  list(single_age = sa_display),
+  file.path(download_dir, "tabla_referencia_single_age_resumen.xlsx"),
+  overwrite = TRUE
+)
+
+outputs_summary <- rbindlist(list(
+  data.table(
+    Tabla = "Abridged final",
+    Llave = "standard_source + standard_version + sex_id + age_start",
+    Variable_edad = "age_group_label",
+    Filas = nrow(abr),
+    Columnas = ncol(abr)
+  ),
+  data.table(
+    Tabla = "Edad simple final",
+    Llave = "standard_source + standard_version + sex_id + exact_age",
+    Variable_edad = "exact_age",
+    Filas = nrow(sa),
+    Columnas = ncol(sa)
+  )
+))
+
+if (nrow(selected_methods) == 0) {
+  methods_compact <- data.table(
+    Fuente = character(),
+    `Versión` = character(),
+    Sexo = character(),
+    Familia = character(),
+    Método = character(),
+    `e(110+)` = numeric()
+  )
+} else {
+  methods_compact <- selected_methods[, .(
+    Fuente = standard_source,
+    `Versión` = standard_version,
+    Sexo = sex_source_value,
+    Familia = family,
+    Método = selected_method,
+    `e(110+)` = round(ex_110plus, 4)
+  )]
+}
+
+if (nrow(compare_summary) == 0) {
+  stability_compact <- data.table(
+    Salida = character(),
+    `Referencia estable` = character(),
+    `Salida actual` = character(),
+    `Filas referencia` = character(),
+    `Filas actuales` = character(),
+    `Columnas iguales` = character(),
+    `Clases iguales` = character(),
+    `Tipos iguales` = character(),
+    `Llave única` = character(),
+    `Checksum igual` = character(),
+    Interpretación = character()
+  )
+} else {
+  stability_compact <- compare_summary[, .(
+    Salida = dataset_id,
+    `Referencia estable` = exists_baseline,
+    `Salida actual` = exists_current,
+    `Filas referencia` = rows_baseline,
+    `Filas actuales` = rows_current,
+    `Columnas iguales` = columns_equal,
+    `Clases iguales` = classes_equal,
+    `Tipos iguales` = typeof_equal,
+    `Llave única` = key_unique_current,
+    `Checksum igual` = checksum_equal,
+    Interpretación = fifelse(
+      dataset_id == "abridged",
+      "La referencia estable y la salida actual coinciden en estructura y granularidad.",
+      "La versión a edad simple conserva la estructura final esperada y mantiene estabilidad reproducible."
+    )
+  )]
+}
+```
+
+```{=html}
+<style>
+figure svg { cursor: zoom-in; }
+figure.quarto-float{margin-top:1rem;margin-bottom:1.25rem}
+figure .cell-output-display{overflow-x:auto}
+.mermaid,
+.mermaid svg{
+  background: transparent !important;
+}
+.mermaid svg{
+  font-size:19px !important;
+  max-width:100% !important;
+  height:auto !important;
+}
+.mermaid .node rect,
+.mermaid .node polygon,
+.mermaid .node path,
+.mermaid .node circle,
+.mermaid .node ellipse{
+  fill:#F8FAFC !important;
+  stroke:#52667A !important;
+  stroke-width:1.4px !important;
+}
+.mermaid .cluster rect{
+  fill:#EEF4F8 !important;
+  stroke:#9FB3C8 !important;
+  stroke-width:1.2px !important;
+}
+.mermaid .label,
+.mermaid .nodeLabel,
+.mermaid text,
+.mermaid tspan{
+  fill:#102A43 !important;
+  color:#102A43 !important;
+  font-weight:600 !important;
+}
+.mermaid .label foreignObject{
+  overflow: visible !important;
+}
+.mermaid .edgeLabel,
+.mermaid .edgeLabel p{
+  background:#FFFFFF !important;
+  color:#102A43 !important;
+}
+.mermaid .labelBkg{
+  fill:#FFFFFF !important;
+}
+.mermaid .flowchart-link,
+.mermaid .messageLine0,
+.mermaid .messageLine1,
+.mermaid .relation{
+  stroke:#6B7C93 !important;
+  stroke-width:1.4px !important;
+}
+.mermaid .arrowheadPath{fill:#6B7C93 !important}
+.mermaid .actor,
+.mermaid .actor-line,
+.mermaid .actor-man{
+  stroke:#52667A !important;
+  fill:#F8FAFC !important;
+}
+.mermaid .loopLine,
+.mermaid .activation0,
+.mermaid .activation1,
+.mermaid .activation2{
+  fill:#EEF4F8 !important;
+  stroke:#9FB3C8 !important;
+}
+.mermaid-lightbox {
+  position: fixed;
+  inset: 0;
+  background: rgba(16, 42, 67, 0.82);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  z-index: 9999;
+}
+.mermaid-lightbox.open { display: flex; }
+.mermaid-lightbox-inner {
+  background: #ffffff;
+  border-radius: 8px;
+  max-width: 96vw;
+  max-height: 92vh;
+  width: min(1400px, 96vw);
+  padding: 1rem 1rem 0.5rem 1rem;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.35);
+}
+.mermaid-lightbox-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+.mermaid-lightbox-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #102A43;
+}
+.mermaid-lightbox-close {
+  border: 1px solid #BCCCDC;
+  background: #F8FAFC;
+  color: #102A43;
+  border-radius: 6px;
+  padding: 0.35rem 0.65rem;
+  cursor: pointer;
+}
+.mermaid-lightbox-body {
+  overflow: auto;
+  max-height: calc(92vh - 4rem);
+  border-top: 1px solid #E2E8F0;
+  padding-top: 1rem;
+}
+.mermaid-lightbox-body svg {
+  max-width: none;
+  width: 100%;
+  height: auto;
+}
+.download-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin: 0.75rem 0 1rem 0;
+}
+.download-row a {
+  display: inline-block;
+  border: 1px solid #BCCCDC;
+  border-radius: 6px;
+  padding: 0.45rem 0.75rem;
+  text-decoration: none;
+  color: #102A43;
+  background: #FFFFFF;
+}
+</style>
+<div id="mermaid-lightbox" class="mermaid-lightbox" aria-hidden="true">
+  <div class="mermaid-lightbox-inner" role="dialog" aria-modal="true" aria-label="Ampliación de figura Mermaid">
+    <div class="mermaid-lightbox-toolbar">
+      <div id="mermaid-lightbox-title" class="mermaid-lightbox-title">Figura ampliada</div>
+      <button type="button" class="mermaid-lightbox-close" id="mermaid-lightbox-close">Cerrar</button>
+    </div>
+    <div id="mermaid-lightbox-body" class="mermaid-lightbox-body"></div>
+  </div>
+</div>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  const lightbox = document.getElementById("mermaid-lightbox");
+  const body = document.getElementById("mermaid-lightbox-body");
+  const title = document.getElementById("mermaid-lightbox-title");
+  const closeBtn = document.getElementById("mermaid-lightbox-close");
+  document.querySelectorAll("a.quarto-xref").forEach(function (link) {
+    link.innerHTML = link.innerHTML.replace(/Figure&nbsp;/g, "Figura&nbsp;").replace(/Table&nbsp;/g, "Tabla&nbsp;");
+  });
+  function closeLightbox() {
+    lightbox.classList.remove("open");
+    lightbox.setAttribute("aria-hidden", "true");
+    body.innerHTML = "";
+  }
+  function bindZoom() {
+    document.querySelectorAll("figure svg").forEach(function (svg) {
+      if (svg.dataset.zoomBound === "true") return;
+      svg.dataset.zoomBound = "true";
+      svg.addEventListener("click", function () {
+        body.innerHTML = "";
+        body.appendChild(svg.cloneNode(true));
+        const fig = svg.closest("figure");
+        const cap = fig ? fig.querySelector("figcaption") : null;
+        title.textContent = cap ? cap.textContent : "Figura ampliada";
+        lightbox.classList.add("open");
+        lightbox.setAttribute("aria-hidden", "false");
+      });
+    });
+  }
+  closeBtn.addEventListener("click", closeLightbox);
+  lightbox.addEventListener("click", function (evt) {
+    if (evt.target === lightbox) closeLightbox();
+  });
+  document.addEventListener("keydown", function (evt) {
+    if (evt.key === "Escape") closeLightbox();
+  });
+  let attempts = 0;
+  const timer = setInterval(function () {
+    bindZoom();
+    attempts += 1;
+    if (attempts > 20) clearInterval(timer);
+  }, 400);
+});
+</script>
+```
+
+# Resumen general {#sec-resumen}
+
+Este anexo describe la construcción final de la tabla de vida estándar reproducible del repositorio `tabla-vida-estandar`. El punto de partida fue una tabla de vida estándar en formato abridged por fuente, versión y sexo. A partir de ese insumo se armonizó la estructura, se expandió la esperanza de vida a edad simple, se modeló la cola avanzada posterior al `85+` abierto y se generó una salida final versionada con edades `0:109` y un último grupo abierto `110+`.
+
+La finalidad del proyecto no fue reconstruir mortalidad observada de un país-año. El objetivo fue disponer de una referencia normativa utilizable en cálculos posteriores de carga de enfermedad y en análisis que requieren una función `e(x)` por edad simple. Esa finalidad condiciona toda la lógica del documento. Primero se expone qué representa una tabla estándar de referencia y por qué la versión agrupada no bastaba para los usos analíticos previstos. Después se describe cómo se preservó la información observada, cómo se trató el segmento final abierto y cómo se verificó que la salida final mantuviera coherencia epidemiológica y estabilidad reproducible.
+
+El texto se organiza en dos partes. La primera desarrolla la lógica bioestadística del problema. La segunda describe la arquitectura informática y el flujo reproducible del pipeline. Cuando el portal principal ya presenta tablas o controles con mayor amplitud, aquí se conserva solo la evidencia necesaria para sostener el argumento metodológico. En otras palabras, la primera parte responde por qué la expansión fue necesaria y cómo se resolvió; la segunda muestra cómo esa solución se implementó y se verificó de forma reproducible.
+
+# Parte I. Metodología bioestadística {#sec-analisis-bioestadistico}
+
+## Tablas de vida estándar de referencia y su uso en carga de enfermedad {#sec-fuente-estandar-oms}
+
+Las tablas de vida estándar utilizadas en estimaciones de carga de enfermedad no cumplen el mismo papel que una tabla observacional construida para una población específica en un año específico. Su función es normativa: proporcionan una expectativa de vida de referencia contra la cual puede valorarse la pérdida asociada a una muerte ocurrida a determinada edad. En ese sentido, forman parte del fundamento analítico de los años de vida perdidos.
+
+La Organización Mundial de la Salud (OMS) describe sus tablas de vida como insumos centrales de sus Global Health Estimates y de sus series comparables de mortalidad por causa y por todas las causas. El documento técnico más reciente sobre ese insumo es *WHO methods and data sources for life tables 2000-2021* ([WHO](https://www.who.int/publications/m/item/who-methods-and-data-sources-for-life-tables-2000-2021)). En el marco de la carga de enfermedad, la OMS formula la lógica de los años de vida perdidos como:
+
+$$
+YLL(c,s,a,t)=N(c,s,a,t)\times L(s,a)
+$$
+
+donde \(N(c,s,a,t)\) representa el número de defunciones por causa, sexo, edad y tiempo, y \(L(s,a)\) representa la pérdida estándar de vida restante asociada a esa edad y sexo. Esa formulación se presenta en *WHO methods and data sources for global burden of disease estimates 2000-2019* ([WHO](https://www.who.int/docs/default-source/gho-documents/global-health-estimates/ghe2019_daly-methods.pdf), sección 2.2).
+
+Esta distinción es importante para entender el resto del anexo. La tabla final construida en este proyecto no pretende describir una cohorte peruana observada. Lo que se buscó fue disponer de una función `e(x)` estable, trazable y utilizable en cálculos posteriores. Esa decisión explica por qué la prioridad metodológica fue preservar la información observada del insumo y explicitar de forma honesta el segmento que debió modelarse.
+
+## Fuente, abierto 85+ y necesidad de expansión {#sec-fuente-abierta}
+
+La fuente pública utilizada por el repositorio proporcionó tablas abridged por referencia (`WHO / GHE`, `GBD 2010`, `GBD 1990 no_weights`, `GBD 1990 age_weighted_discounted`) y por sexo. En todos los estratos, el tramo superior apareció como `85+`. Operativamente, el campo `age_end = 120` se interpretó como una codificación del intervalo abierto y no como una observación empírica del intervalo cerrado `85-120`.
+
+Ese punto debía aclararse antes de cualquier expansión. Si la fuente no observaba edades simples posteriores a 85 años, la forma detallada de la cola no podía recuperarse por simple reordenamiento de filas ni por una interpolación mecánica sin supuestos adicionales. El problema analítico quedaba planteado de este modo: preservar la información observada antes del abierto y construir una representación plausible de la cola avanzada sin atribuirle a la fuente un detalle que no tenía.
+
+La necesidad de expansión surgió precisamente allí. La tabla abridged era suficiente para resumir una referencia normativa por grupos amplios de edad, pero no bastaba para varios usos analíticos posteriores. En cálculos de años de vida perdidos, en inspección de continuidad por edad y en revisión de la forma de la cola avanzada, una tabla por grupos pierde la resolución necesaria para distinguir si un cambio es suave, abrupto o inducido por el método. La expansión a edad simple permitió trasladar la información disponible a un soporte analítico más fino, manteniendo los puntos observados y dejando explícito dónde terminaba la observación y dónde comenzaba el modelado.
+
+## Flujo analítico general de la construcción final {#sec-flujo-analitico-bio}
+
+Una vez aclarado el papel de la tabla estándar de referencia y la naturaleza abierta del `85+`, la siguiente pregunta es cómo se pasó desde una tabla agrupada hasta una función analítica a edad simple. La lógica general se resume en [Figura 1](#fig-flujo-bio) y organiza el resto de la primera parte: primero se armoniza la fuente, después se expande, luego se compara el cierre avanzado y, por último, se verifica que la solución final preserve tanto la plausibilidad epidemiológica como la información observada.
+
+```{mermaid}
+%%| label: fig-flujo-bio
+%%| fig-cap: "Flujo bioestadístico general de la construcción final. El diagrama resume la secuencia analítica desde la tabla abridged de referencia hasta la base final a edad simple."
+flowchart TD
+  A(["Inicio"]) --> B[/"Fuente abridged de referencia"/]
+  B --> C["Armonización"]
+  C --> D["Expansión a edad simple"]
+  D --> E["Comparación terminal"]
+  E --> F{"¿Cola coherente?"}
+  F -->|"No"| G["Ajuste del cierre"]
+  G --> E
+  F -->|"Sí"| H[("Base final")]
+  H --> I["Controles diagnósticos"]
+  I --> J(["Salida exportada 0:109 y 110+"])
+```
+
+En una solución consistente, la decisión sobre la cola avanzada aparece recién después de comprobar preservación de puntos observados, continuidad local y coherencia del abierto final. Si la selección dependiera de múltiples excepciones locales o de ramas ad hoc distintas para cada estrato, la estrategia sería más difícil de defender como referencia reproducible. La siguiente sección desarrolla precisamente esa transición entre la información observada de la tabla abridged y la estructura analítica que se necesitó construir.
+
+## Expansión e interpolación a edad simple {#sec-expansion-edad-simple}
+
+### Qué se preservó exactamente {#sec-knots}
+
+La expansión a edad simple se diseñó bajo una restricción fuerte: cada punto observado de la tabla abridged que pudiera representarse a edad exacta en la tabla final debía conservarse sin error. A esos puntos observados se los trató como *knots* o anclajes de la expansión. Operativamente:
+
+$$
+e_{abridged}(x_k)=e_{final}(x_k)
+$$
+
+donde \(x_k\) representa una edad observada de la tabla abridged.
+
+Esta restricción resolvió un problema metodológico concreto. Sin ella, la expansión habría mezclado dos fuentes de variación: la información observada del insumo y las decisiones del método de interpolación o cierre. Al exigir preservación exacta de los *knots*, la discusión posterior pudo centrarse en el segmento que realmente necesitaba modelado y no en errores introducidos sobre edades ya observadas.
+
+### Por qué la tabla abridged no bastaba {#sec-metrica-ex}
+
+La magnitud central del proyecto fue la esperanza de vida restante a la edad exacta \(x\), denotada por \(e(x)\):
+
+$$
+e(x)
+$$
+
+La tabla abridged permitía observar esa cantidad en grupos amplios de edad, pero no bastaba para los usos analíticos posteriores. En particular, no permitía revisar con suficiente resolución la continuidad por edad, comparar alternativas de cierre avanzado ni construir una salida final compatible con cálculos posteriores que requieren edad simple.
+
+La interpolación no se utilizó para “crear” una nueva tabla desvinculada de la fuente, sino para trasladar a un soporte analítico más fino la información ya disponible. Por ello, la pregunta metodológica central no fue si convenía interpolar en abstracto, sino cómo hacerlo sin deformar lo observado y sin ocultar el momento en que la representación deja de ser observacional y pasa a ser modelada.
+
+## Construcción de la cola avanzada de la tabla {#sec-tramo-terminal}
+
+### Último grupo abierto y significado analítico de la salida final
+
+La estructura final exportada contiene edades `0:109` y un último grupo abierto `110+`. La condición analítica central fue:
+
+$$
+e(110+) > 0
+$$
+
+Esta decisión no fue un detalle de formato. Un último grupo abierto con esperanza de vida igual a cero equivale, en la práctica, a cerrar instantáneamente la tabla. Para una tabla estándar de referencia, ese cierre resultaba metodológicamente menos defendible que representar un abierto final explícito con expectativa restante positiva y coherente con la cola interna modelada.
+
+El soporte interno hasta `125` cumplió una función distinta. No redefinió el insumo original ni convirtió `85+` en un intervalo cerrado. Se utilizó únicamente como horizonte interno de cálculo suficiente para construir un abierto final coherente y derivar un `110+` con esperanza de vida positiva. Como contexto local adicional, una nota oficial de Pensión 65 publicada el 30 de marzo de 2026 informó el fallecimiento de Marcelino Abad Tolentino, identificado por el Midis como el usuario más longevo del país con 125 años y próximo a cumplir 126 ([gob.pe](https://www.gob.pe/institucion/pension65/noticias/1372953-mashico-fallece-marcelino-abad-el-peruano-mas-longevo-de-pension-65-del-midis-a-pocos-dias-de-cumplir-126-anos)). Ese antecedente no se utilizó para calibrar el método; solo se conserva como contexto ilustrativo de que ese horizonte interno no resulta demográficamente absurdo.
+
+### Familias basadas en leyes de mortalidad {#sec-familia-law-based}
+
+El método final se apoyó en familias de cierre basadas en leyes de mortalidad avanzada. Dentro de esa familia se compararon variantes tipo Kannisto y alternativas tipo Coale-Kisker, además de ajustes de transición como puentes de anclaje y mezclas progresivas. La razón para evaluar este tipo de enfoques fue epidemiológica y demográfica a la vez. Cuando la fuente termina en un `85+` abierto, el problema no consiste solo en suavizar una curva, sino en representar de manera plausible la evolución de la supervivencia a edades muy avanzadas. Las leyes de mortalidad introducen estructura demográfica allí donde la fuente ya no provee detalle directo.
+
+En términos interpretativos, las familias basadas en leyes de mortalidad suelen ofrecer tres ventajas. Primero, una transición más defendible al ingresar en la cola avanzada. Segundo, una relación más natural con la dinámica de la mortalidad extrema. Tercero, mayor estabilidad al extrapolar. Su principal limitación es que dependen de supuestos estructurales y, por lo tanto, deben auditarse con cuidado cuando el tramo observado previo al abierto es corto o poco informativo.
+
+### Comparadores directos sobre e(x) {#sec-comparador-ex-space}
+
+En paralelo se mantuvo un comparador directo en el espacio de `e(x)`, denominado `ex-space`. Su función fue metodológica: documentar sensibilidad y ofrecer una referencia reproducible frente a la familia seleccionada. No se interpretó como una segunda salida final.
+
+Los comparadores directos sobre `e(x)` tienen una ventaja práctica evidente: permiten trabajar de manera inmediata sobre la magnitud de interés. Sin embargo, presentan una limitación importante en este problema. Si la cola se modela solo en el espacio de la esperanza de vida restante, puede lograrse una suavidad visual aceptable sin que la representación subyacente de la mortalidad extrema sea igualmente convincente. Por eso se mantuvieron como comparadores útiles, pero no como base principal de la estructura final exportada.
+
+## Criterios de evaluación y patrones esperados {#sec-criterios-evaluacion}
+
+### Delta y curvatura {#sec-delta-curvatura}
+
+Una vez construidas las alternativas terminales, fue necesario evaluar su forma. Para ello se utilizó el cambio anual de la esperanza de vida:
+
+$$
+\Delta e(x)=e(x+1)-e(x)
+$$
+
+y la curvatura discreta:
+
+$$
+\Delta^2 e(x)=\Delta e(x+1)-\Delta e(x)
+$$
+
+Antes de 85 años, \(\Delta e(x)\) se interpretó principalmente como evidencia de continuidad entre puntos observados. Después de 85 años, se interpretó como evidencia de la forma modelada de la cola avanzada, ya no como observación directa de la fuente. La curvatura discreta complementó esa lectura al mostrar si el cambio de pendiente era gradual o si aparecían rectificaciones bruscas.
+
+En una solución epidemiológicamente plausible, el delta debía aproximarse a cero de manera gradual, sin rebotes abruptos ni aplanamientos prematuros. La curvatura debía mantenerse moderada. Si el delta colapsaba demasiado rápido o la curvatura alternaba con picos dominantes, la cola tendía a verse forzada.
+
+### Métricas diagnósticas terminales {#sec-metricas-terminales}
+
+El quiebre local al entrar en la cola se resumió mediante:
+
+$$
+\text{jump}_{84,85}=|\Delta e(85)-\Delta e(84)|
+$$
+
+Valores pequeños fueron compatibles con una transición suave entre el último tramo observado y el comienzo del cierre modelado. Valores altos indicaron un cambio de pendiente potencialmente visible y, por tanto, una alerta metodológica.
+
+La métrica `rebound_ratio_95` resumió la velocidad con la que \(\Delta e(x)\) se acercaba a cero al avanzar por la cola hasta edades cercanas a 95. No fue una medida absoluta, sino un diagnóstico relativo de cuán agresivo era el cierre. En términos prácticos, un cierre demasiado rápido puede producir una cola artificialmente rígida; uno demasiado lento puede dejar una pendiente incompatible con una transición avanzada razonable.
+
+Para verificar preservación exacta de puntos observados también se calcularon:
+
+$$
+\text{max\_abs\_diff}=\max |e_{abridged}-e_{final}|
+$$
+
+$$
+\text{mean\_abs\_diff}=\operatorname{promedio}\left(|e_{abridged}-e_{final}|\right)
+$$
+
+y el conteo de *knots* faltantes:
+
+$$
+\text{n\_missing\_single\_age}=\sum I(x_k \notin \text{single-age final})
+$$
+
+En la situación ideal, `max_abs_diff = 0`, `mean_abs_diff = 0` y `n_missing_single_age = 0`. Cualquier desviación positiva indica que la expansión ya no está respetando el insumo observado y, por lo tanto, que el problema ya no reside solo en la cola avanzada sino también en la representación de la parte observada.
+
+## Supuestos, limitaciones y retos {#sec-supuestos}
+
+La construcción final descansó sobre cuatro supuestos centrales. Primero, que `85+` representaba un abierto real y no un tramo empírico observado a edad simple. Segundo, que los puntos observados abridged debían preservarse exactamente. Tercero, que la forma posterior a 85 debía modelarse explícitamente. Cuarto, que el último abierto `110+` debía conservar una esperanza de vida positiva cuando la cola interna lo implicaba.
+
+De esos supuestos emergen varias limitaciones. La principal es que la tabla abridged no contiene información suficiente para identificar una única forma post-85. En consecuencia, la cola avanzada no puede leerse como observación directa. Otra limitación es que la necesidad de preservar *knots* restringe la flexibilidad de la interpolación y obliga a resolver un compromiso entre continuidad local y plausibilidad terminal. Finalmente, el soporte interno hasta 125 es un artificio de cálculo: metodológicamente útil, pero no interpretable como observación de la fuente.
+
+En una construcción satisfactoria deberían observarse, de manera conjunta, preservación exacta de los puntos abridged, transición razonable al cruzar `84-85-86`, aproximación gradual del delta hacia edades avanzadas y un `110+` abierto con esperanza de vida positiva. Ninguno de esos indicadores es suficiente por sí solo; la lectura es necesariamente conjunta. Con esa lógica ya establecida, la siguiente sección vuelve a las dos tablas sustantivas del proyecto para mostrar cómo queda representada la solución en la salida resumida del suplemento.
+
+## Tablas de referencia final y versión expandida {#sec-tablas-referencia}
+
+Una vez resuelta la lógica metodológica, conviene volver a las dos tablas sustantivas del proyecto. Esta sección resume, en formato legible de suplemento, la tabla abridged armonizada y la tabla final a edad simple. El detalle amplio se conserva en la web principal; aquí se muestran solo las salidas centrales que permiten seguir el razonamiento del documento.
+
+::: {.panel-tabset}
+## Abridged
+
+La tabla abridged final conserva la estructura agrupada de la referencia estándar y funciona como versión armonizada del insumo original. Su lectura permite reconocer qué parte del problema estaba observada directamente antes de la expansión.
+
+<div class="download-row">
+<a href="anexo_downloads/tabla_referencia_abridged_resumen.csv">Descargar CSV</a>
+<a href="anexo_downloads/tabla_referencia_abridged_resumen.xlsx">Descargar XLSX</a>
+</div>
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+rmarkdown::paged_table(abr_display, options = list(rows.print = 15))
+```
+
+## Edad simple
+
+La tabla a edad simple es la salida analítica final del proyecto. Su importancia metodológica radica en que mantiene los puntos observados de la tabla abridged, explicita el segmento modelado y deja una estructura final exportada con edades `0:109` y un último grupo abierto `110+`.
+
+<div class="download-row">
+<a href="anexo_downloads/tabla_referencia_single_age_resumen.csv">Descargar CSV</a>
+<a href="anexo_downloads/tabla_referencia_single_age_resumen.xlsx">Descargar XLSX</a>
+</div>
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+rmarkdown::paged_table(sa_display, options = list(rows.print = 15))
+```
+:::
+
+# Parte II. Arquitectura informática y reproducibilidad {#sec-metodos-informaticos}
+
+## Flujo operativo del pipeline {#sec-arquitectura-global}
+
+La parte bioestadística mostró qué problema se resolvió y por qué. La pregunta siguiente ya no es sustantiva sino operativa: cómo se implementó esa solución de forma reproducible y auditable. [Figura 2](#fig-arquitectura-global) cumple aquí una doble función: resume el flujo ejecutable del proyecto y, al mismo tiempo, permite reconstruir manualmente el orden canónico de la corrida cuando se necesita auditarla paso a paso.
+
+```{mermaid}
+%%| label: fig-arquitectura-global
+%%| fig-cap: "Flujo operativo del pipeline. La figura resume los insumos normativos, la ruta manual equivalente de ejecución y las salidas principales por etapa."
+flowchart TD
+  A0(["Entrada recomendada"]) --> A1["run_preflight_checks.R"]
+  A0 --> A2["run_pipeline.R"]
+
+  N1[/"Fuente raw estándar"/]
+  N2[/"Catálogo de pasos"/]
+  N3[/"Perfiles del pipeline"/]
+  N4[/"Guías de ejecución"/]
+
+  A1 --> N1
+  A1 --> N2
+  A1 --> N3
+  A1 --> N4
+  A1 --> B1{"¿Preflight aprobado?"}
+  B1 -->|"Sí"| P1["Paso 1: setup_packages.R"]
+  B1 -->|"No"| X1(["Corregir entorno o insumos"])
+  A2 --> P1
+
+  N1 --> P2["Paso 2: build_abridged.R"]
+  N2 --> P2
+  N3 --> P2
+  N4 --> P2
+  P1 --> P2
+  P2 --> O1[("Abridged armonizada")]
+
+  O1 --> P3["Paso 3: build_single_age.R"]
+  N2 --> P3
+  N3 --> P3
+  P3 --> O2[("Tabla final a edad simple")]
+
+  O1 --> P4["Paso 4: qc_standard_life_table.R"]
+  O2 --> P4
+  P4 --> O3[("QC estructural")]
+  P4 --> O4[("QC terminal")]
+
+  O2 --> P5["Paso 5: export_final.R"]
+  P5 --> O5[("Export final y diccionarios")]
+
+  O3 --> P6["Paso 6: render_audit_report.R"]
+  O4 --> P6
+  O5 --> P6
+  P6 --> O6[("Anexo metodológico")]
+
+  O4 --> P7["Paso 7: build_terminal_module.R"]
+  P7 --> O7[("Módulo terminal")]
+
+  O3 --> P8["Paso 8: build_portal.R"]
+  O4 --> P8
+  O6 --> P8
+  O7 --> P8
+  P8 --> O8[("Portal web")]
+
+  O5 --> V1["compare_contract_baseline.R"]
+  V1 --> O9[("Verificación de estabilidad")]
+
+  class A0,A1,A2 entry
+  class N1,N2,N3,N4 input
+  class P1,P2,P3,P4,P5,P6,P7,P8 process
+  class B1 decision
+  class O1,O2,O3,O4,O5,O6,O7,O8,O9 output
+  class X1 alert
+  class V1 verify
+  classDef entry fill:#EFF6FF,stroke:#2563EB,color:#102A43,stroke-width:1.5px;
+  classDef input fill:#F8FAFC,stroke:#64748B,color:#102A43,stroke-width:1.4px;
+  classDef process fill:#FFFFFF,stroke:#475569,color:#102A43,stroke-width:1.4px;
+  classDef decision fill:#FFF7ED,stroke:#C2410C,color:#102A43,stroke-width:1.5px;
+  classDef output fill:#ECFDF5,stroke:#0F766E,color:#102A43,stroke-width:1.5px;
+  classDef verify fill:#F5F3FF,stroke:#7C3AED,color:#102A43,stroke-width:1.5px;
+  classDef alert fill:#FEF2F2,stroke:#DC2626,color:#7F1D1D,stroke-width:1.5px;
+```
+
+La figura distingue tres capas de uso práctico. Primero, los archivos normativos que se cargan o se revisan antes de correr. Segundo, los scripts `.R` que se ejecutan en orden canónico. Tercero, las salidas que cada etapa produce y que conviene revisar al final. La ruta recomendada sigue siendo `run_pipeline.R`, pero la secuencia numerada deja documentada la ruta manual equivalente cuando se necesita auditar una etapa específica.
+
+Como nota de lectura, en esta figura `Fuente raw estándar` refiere a `data/raw/standard_life_table/life_expectancy_standard_who_gbd.csv`; `Catálogo de pasos` a `config/pipeline_steps.csv`; `Perfiles del pipeline` a `config/pipeline_profiles.yml`; y `Guías de ejecución` a `README.md`, `docs/RUNBOOK.md` y `docs/DATA_CONTRACT.md`. En las etiquetas visibles se usaron nombres abreviados de scripts para mejorar la lectura del diagrama ampliado.
+
+## Flujo del orquestador `run_pipeline.R` {#sec-flujo-run-pipeline}
+
+La figura anterior muestra la ruta manual equivalente y los insumos normativos que la gobiernan. [Figura 3](#fig-run-pipeline) responde a otra pregunta: cómo el orquestador `scripts/run_pipeline.R` lee el perfil elegido, consulta el catálogo de pasos y ejecuta internamente la corrida completa sin necesidad de invocar cada script por separado. No se trata de un duplicado, sino de una vista complementaria del mismo proceso: una describe la ejecución manual equivalente y la otra la lógica interna del orquestador.
+
+```{mermaid}
+%%| label: fig-run-pipeline
+%%| fig-cap: "Flujo del orquestador `run_pipeline.R`. La figura resume cómo el orquestador lee perfiles y catálogo de pasos, ejecuta cada script en orden y produce las salidas principales de la corrida."
+flowchart TD
+  A["run_pipeline.R"] --> B[/"config/pipeline_profiles.yml"/]
+  A --> C[/"config/pipeline_steps.csv"/]
+  B --> D{"Perfil seleccionado"}
+  C --> E["Catálogo ordenado"]
+  D --> E
+  E --> P1["Paso 1 | setup_packages.R"]
+  P1 --> P2["Paso 2 | build_abridged.R"]
+  P2 --> P3["Paso 3 | build_single_age.R"]
+  P3 --> P4["Paso 4 | qc_standard_life_table.R"]
+  P4 --> P5["Paso 5 | export_final.R"]
+  P5 --> P6["Paso 6 | render_audit_report.R"]
+  P6 --> P7["Paso 7 | build_terminal_module.R"]
+  P7 --> P8["Paso 8 | build_portal.R"]
+  P5 --> O1[("Salidas exportadas")]
+  P4 --> O2[("QC generado")]
+  P6 --> O3[("Anexo renderizado")]
+  P8 --> O4[("Portal construido")]
+```
+
+Esta figura no reemplaza la secuencia de ejecución. Su utilidad es otra: documenta el orden lógico que el orquestador sigue dentro del pipeline y resume qué producto deja cada etapa. En los nodos se privilegió la legibilidad; la glosa funcional completa de los scripts ya quedó desarrollada en el texto del anexo y en la figura operativa general. Con eso ya establecido, la siguiente figura puede concentrarse en quién invoca a quién y qué devuelve cada componente.
+
+### Secuencia de ejecución {#sec-secuencia-ejecucion}
+
+[Figura 4](#fig-secuencia-ejecucion) complementa las dos figuras anteriores. Mientras la Figura 2 muestra la ruta manual equivalente y la Figura 3 resume la lógica interna del orquestador, la secuencia muestra quién invoca a qué componente y qué devuelve cada etapa. Se mantuvo más compacta para no repetir la numeración operativa ya documentada antes.
+
+```{mermaid}
+%%| label: fig-secuencia-ejecucion
+%%| fig-cap: "Secuencia de ejecución del proyecto. La figura resume el orden de invocación entre la persona analista, los entrypoints principales y los productos que cada etapa devuelve."
+sequenceDiagram
+  autonumber
+  actor A as Analista
+  participant P as Preflight
+  participant R as Pipeline
+  participant B as Abr
+  participant S as Single
+  participant Q as QC
+  participant E as Export
+  participant M as Anexo
+  participant W as Portal
+
+  A->>P: Ejecuta verificación inicial
+  P-->>A: Dependencias y rutas validadas
+  A->>R: Ejecuta pipeline completo
+  R->>B: Construye abridged canónica
+  B-->>R: Devuelve abridged final
+  R->>S: Expande a edad simple
+  S-->>R: Devuelve single-age final
+  R->>Q: Ejecuta controles
+  Q-->>R: Devuelve tablas QC
+  R->>E: Exporta salidas y diccionarios
+  E-->>R: Escribe CSV y RDS
+  R->>M: Renderiza anexo metodológico
+  M-->>R: Devuelve HTML
+  R->>W: Construye portal integrado
+  W-->>R: Devuelve HTML y tomos
+  R-->>A: Corrida reproducible completa
+```
+
+La utilidad de esta figura radica en separar transformación de ejecución. Si ambos diagramas dijeran exactamente lo mismo, uno sería redundante. Aquí, en cambio, cada uno responde una pregunta distinta. Con esa secuencia ya establecida, la última pieza informática relevante es mostrar cómo se relacionan entre sí los objetos de datos que circulan por el pipeline.
+
+## Objetos de datos y relaciones {#sec-relaciones-datos}
+
+### Diagrama relacional anotado
+
+Después de describir la ejecución, resulta útil mostrar cómo se relacionan los objetos de datos del proyecto. [Figura 5](#fig-modelo-relacional) resume esas dependencias y se complementa con una tabla breve de llaves visibles.
+
+```{mermaid}
+%%| label: fig-modelo-relacional
+%%| fig-cap: "Relaciones entre objetos de datos. La figura resume los artefactos centrales y muestra las llaves primarias o campos de conexión que permiten vincular los controles con las salidas finales."
+erDiagram
+  ABRIDGED_FINAL ||--o{ QC_STRUCTURAL : "standard_source, standard_version, sex_id"
+  SINGLE_AGE_FINAL ||--o{ QC_STRUCTURAL : "standard_source, standard_version, sex_id"
+  ABRIDGED_FINAL ||--o{ QC_KNOTS : "standard_source, standard_version, sex_id, age_start"
+  SINGLE_AGE_FINAL ||--o{ QC_KNOTS : "standard_source, standard_version, sex_id, exact_age"
+  SINGLE_AGE_FINAL ||--o{ QC_TERMINAL : "standard_source, standard_version, sex_source_value"
+  ABRIDGED_FINAL ||--o{ DATA_DICTIONARY : "dataset_id"
+  SINGLE_AGE_FINAL ||--o{ DATA_DICTIONARY : "dataset_id"
+
+  ABRIDGED_FINAL {
+    string standard_source PK
+    string standard_version PK
+    int sex_id PK
+    int age_start PK
+    double ex
+  }
+
+  SINGLE_AGE_FINAL {
+    string standard_source PK
+    string standard_version PK
+    int sex_id PK
+    int exact_age PK
+    double ex
+  }
+
+  QC_STRUCTURAL {
+    string dataset_id PK
+    string check_name PK
+    string standard_source FK
+    string standard_version FK
+    int sex_id FK
+  }
+
+  QC_KNOTS {
+    string standard_source FK
+    string standard_version FK
+    int sex_id FK
+    int knot_age
+    double max_abs_diff
+  }
+
+  QC_TERMINAL {
+    string standard_source FK
+    string standard_version FK
+    string sex_source_value FK
+    string terminal_policy_current
+    double ex_110plus
+  }
+
+  DATA_DICTIONARY {
+    string dataset_id PK
+    string column_name PK
+    string field_type
+  }
+```
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+kable(
+  data.table(
+    Objeto = c("ABRIDGED_FINAL", "SINGLE_AGE_FINAL", "QC_TERMINAL", "QC_KNOTS", "QC_STRUCTURAL", "DATA_DICTIONARY"),
+    `Llave primaria o vínculo` = c(
+      "standard_source + standard_version + sex_id + age_start",
+      "standard_source + standard_version + sex_id + exact_age",
+      "standard_source + standard_version + sex_source_value",
+      "standard_source + standard_version + sex_id + knot_age",
+      "dataset_id + check_name",
+      "dataset_id + column_name"
+    ),
+    `Propósito de la relación` = c(
+      "Tabla abridged final exportada y preservada como referencia agrupada.",
+      "Tabla final a edad simple usada en análisis posteriores.",
+      "Resume la coherencia del abierto final y de e(110+).",
+      "Contrasta la tabla abridged con la expansión a edad simple en edades observadas.",
+      "Resume controles de estructura, tipos, orden de edad y unicidad.",
+      "Documenta variables, tipos y significado de las salidas finales."
+    )
+  )
+)
+```
+
+La tabla breve se mantuvo inmediatamente debajo del diagrama para que la lectura visual de las relaciones y la lectura de las llaves visibles formen una sola unidad.
+
+Si en un proyecto futuro la descripción completa de llaves primarias y foráneas volviera ilegible el diagrama, convendría mantener la figura en este nivel y dejar el detalle de llaves en una tabla anexa, en lugar de sobrecargar el gráfico.
+
+## Ingesta, transformación y validación estructural {#sec-qc-informatico}
+
+La ingesta partió de `data/raw/standard_life_table/life_expectancy_standard_who_gbd.csv`. A partir de ese archivo se generó un staging abridged canónico y luego una tabla final a edad simple. Todas las transformaciones se ejecutaron mediante scripts deterministas y no requirieron hojas de cálculo manuales ni pasos interactivos.
+
+Los controles informáticos cubrieron presencia de columnas, tipos, unicidad de llaves lógicas, orden de edad, ancho de intervalo, conteo del abierto final, positividad de `e(110+)` y verificación de estabilidad contra una referencia estable de la misma salida final. Su propósito fue asegurar estabilidad de la estructura final exportada y trazabilidad del pipeline, no sustituir la evaluación epidemiológica de la forma terminal.
+
+## Evidencia tabular resumida y estabilidad de la salida final {#sec-outputs-contrato}
+
+La evidencia tabular completa se conserva en el portal web principal. En este anexo se resumen solo los elementos necesarios para documentar el método y la estabilidad de la estructura final exportada.
+
+### Inventario mínimo de salidas
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+kable(outputs_summary)
+```
+
+### Métodos seleccionados por estrato
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+kable(methods_compact)
+```
+
+### Verificación de estabilidad de la salida final
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+kable(stability_compact)
+```
+
+En esta sección se presenta la verificación de estabilidad de la salida final frente a una referencia estable del mismo producto ya validado. La lectura esperable es preservación de filas, columnas, clases, tipos y llaves lógicas. Las diferencias de `checksum` en artefactos secundarios pueden aparecer por metadatos de exportación; por eso, la interpretación principal debe centrarse en la estructura y en el significado analítico de las salidas finales.
+
+## Glosario metodológico y operativo {#sec-glosario-operativo}
+
+El portal, el glosario y este anexo comparten una misma taxonomía de términos. En la capa visible de la web se privilegian etiquetas legibles; en las descargas y en los scripts se conservan los nombres técnicos. La tabla siguiente resume esa correspondencia para los conceptos más usados.
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+portal_glossary <- data.table(
+  Término_visible = c(
+    "e(x)",
+    "Delta anual de e(x)",
+    "Curvatura discreta",
+    "Punto observado abridged (knot)",
+    "Regla de representación del abierto final",
+    "Soporte interno hasta 125",
+    "Flujo reproducible del proyecto"
+  ),
+  Nombre_técnico = c(
+    "ex",
+    "delta_ex",
+    "second_diff",
+    "knot",
+    "terminal_policy_current",
+    "support_age_max = 125",
+    "pipeline"
+  ),
+  Definición = c(
+    "Esperanza de vida restante a la edad exacta x.",
+    "Cambio anual de e(x) entre edades consecutivas.",
+    "Segunda diferencia discreta del delta; ayuda a detectar quiebres.",
+    "Edad observada en la tabla abridged que debe preservarse al expandir.",
+    "Regla con la que se representa el abierto final y su esperanza de vida asociada.",
+    "Horizonte interno de cálculo usado para construir una cola abierta coherente.",
+    "Secuencia de scripts que reconstruye las salidas desde cero."
+  )
+)
+kable(portal_glossary)
+```
+
+# Despliegue y gobernanza
+
+## Pautas mínimas de despliegue {#sec-despliegue}
+
+```bash
+Rscript scripts/run_preflight_checks.R
+Rscript scripts/run_pipeline.R --profile full --clean-first
+Rscript scripts/compare_contract_baseline.R data/derived/qc/standard_life_table/baseline_contract_YYYYMMDD_HHMMSS
+```
+
+La ruta Docker se documenta por separado en `docs/docker_manual.md`. El anexo se limita a señalar los entrypoints que sostienen la reproducibilidad de la versión publicada.
+
+## Gobernanza de archivos normativos {#sec-gobernanza}
+
+Como referencia operativa del proyecto deben considerarse normativos `AGENTS.md`, `README.md`, `docs/DATA_CONTRACT.md`, `docs/RUNBOOK.md`, `config/`, `R/`, `scripts/`, `data/final/`, `data/derived/qc/` y `reports/`. Los archivos narrativos fuera de esas rutas cumplen un rol contextual, no contractual.

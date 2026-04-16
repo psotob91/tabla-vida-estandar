@@ -1,0 +1,11 @@
+.git
+.Rproj.user
+.Rhistory
+.RData
+data/derived
+data/final
+data/_catalog
+reports/*.html
+reports/*.pdf
+reports/qc_standard_life_table
+outputs
