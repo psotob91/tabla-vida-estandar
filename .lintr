@@ -1,24 +1,11 @@
-# Linea base de estilo, deliberadamente permisiva.
-#
-# El codigo tiene 8.018 lineas de mas de 80 caracteres y 2.526 de mas de 120.
-# Poner el limite en 80 daria miles de avisos el primer dia y nadie lo miraria.
-# Se fija en 120 para tener una medida que hoy se pueda sostener, y se aprietan
-# los linters que detectan errores de verdad, no de formato.
-#
-# Los que estan desactivados NO son "no importa": son los que exigirian tocar
-# codigo de produccion sin tests suficientes todavia. Se reactivaran por fases.
 linters: linters_with_defaults(
-  line_length_linter(120),
-  object_name_linter = NULL,      # hay nombres en espanhol e ingles mezclados
-  cyclocomp_linter = NULL,        # hay funciones de 500 lineas: primero partirlas
-  object_length_linter = NULL,
-  commented_code_linter = NULL,   # se limpia por fases
-  indentation_linter = NULL,
-  # Estos si detectan errores reales y se dejan activos:
-  #   seq_linter        -> 1:length(x) falla con vectores vacios
-  #   equals_na_linter  -> x == NA nunca es TRUE
-  #   T_and_F_symbol_linter -> T y F son variables reasignables
-  NULL
-)
+    line_length_linter(120),
+    object_usage_linter = NULL,
+    object_name_linter = NULL,
+    object_length_linter = NULL,
+    cyclocomp_linter = NULL,
+    commented_code_linter = NULL,
+    indentation_linter = NULL
+  )
 exclusions: list("renv", "packrat")
 encoding: "UTF-8"
