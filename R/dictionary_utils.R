@@ -22,27 +22,27 @@ dict_from_spec <- function(spec, dataset_version = "v1.0.0", run_id = NA_charact
   pk <- spec$primary_key
   cts <- spec$constraints
   dict_meta <- spec$dictionary
-  
+
   get_meta <- function(col, field, default = NA_character_) {
     if (!is.null(dict_meta) && !is.null(dict_meta[[col]]) && !is.null(dict_meta[[col]][[field]])) {
       dict_meta[[col]][[field]]
     } else default
   }
-  
+
   # allowed_values_label special-case: location_id
   loc_avl <- location_allowed_values_label(config_dir)
-  
+
   dt <- rbindlist(lapply(req_cols, function(col) {
     dtype <- spec$required_columns[[col]]
     allow_na <- cts[[col]]$allow_na %||% TRUE
     minv <- cts[[col]]$min %||% NA
     maxv <- cts[[col]]$max %||% NA
-    
+
     allowed_values <- if (!is.null(cts[[col]]$allowed_values)) paste(cts[[col]]$allowed_values, collapse = "|") else NA_character_
-    
+
     av_label <- get_meta(col, "allowed_values_label", NA_character_)
     if (col == "location_id" && !is.na(loc_avl)) av_label <- loc_avl
-    
+
     data.table(
       dataset_id = dataset_id,
       version = dataset_version,
@@ -64,7 +64,7 @@ dict_from_spec <- function(spec, dataset_version = "v1.0.0", run_id = NA_charact
       notes = NA_character_
     )
   }))
-  
+
   meta_rows <- data.table(
     dataset_id = dataset_id,
     version = dataset_version,
@@ -93,23 +93,23 @@ dict_from_spec <- function(spec, dataset_version = "v1.0.0", run_id = NA_charact
       spec$policy$extrapolation$method %||% NA_character_
     )
   )
-  
+
   rbind(dt, meta_rows, fill = TRUE)
 }
 
 enrich_dict_with_stats <- function(dict, data) {
   dt <- as.data.table(data)
   dict2 <- copy(dict)
-  
+
   cols <- dict2[!startsWith(column_name, "META:"), unique(column_name)]
   cols <- intersect(cols, names(dt))
-  
+
   stats <- rbindlist(lapply(cols, function(col) {
     x <- dt[[col]]
     ex <- unique(x[!is.na(x)])
     ex <- head(ex, 5)
     ex_str <- paste(ex, collapse = "|")
-    
+
     data.table(
       column_name = col,
       n_missing = sum(is.na(x)),
@@ -119,6 +119,6 @@ enrich_dict_with_stats <- function(dict, data) {
       example_values = ex_str
     )
   }), fill = TRUE)
-  
+
   merge(dict2, stats, by = "column_name", all.x = TRUE, sort = FALSE)
 }

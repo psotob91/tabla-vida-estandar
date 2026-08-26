@@ -96,6 +96,10 @@ compute_ex_from_q_schedule <- function(q_tail, start_age, support_age_max, ax = 
   data.table(exact_age = ages, ex = pmax(0, ex_vals), q_latent = q_tail, m_latent = m_tail)
 }
 
+# "kannisto" aqui significa ajuste lineal de logit(q) en la edad, no el modelo de
+# Kannisto canonico, que se define sobre logit(mu). Es la misma convencion que en
+# los otros dos repos que modelan cola. Ver la nota extensa en
+# demografia-poblacion-inei/R/tail_model_utils.R:fit_kannisto_qx_schedule.
 calibrate_tail_by_law <- function(dt_exact,
                                   law = c("kannisto", "coale_kisker_like"),
                                   tail_start_age = 85L,

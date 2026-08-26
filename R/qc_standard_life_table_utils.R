@@ -3,15 +3,15 @@ library(data.table)
 qc_standard_life_table_abridged <- function(dt) {
   x <- as.data.table(copy(dt))
   out <- list()
-  
+
   out$ex_negative <- x[ex < 0]
   out$bad_age_order <- x[age_end <= age_start]
   out$bad_age_width <- x[age_interval_width <= 0]
   out$units_not_years <- x[units != "years"]
-  
+
   # Monotonicidad solo en versiones donde corresponde
   monotone_versions <- c("2010", "GHE", "1990_no_weights_no_discount")
-  
+
   out$ex_not_monotone_expected <- x[
     standard_version %in% monotone_versions
   ][
@@ -19,11 +19,11 @@ qc_standard_life_table_abridged <- function(dt) {
     .(age_start, age_end, ex, ex_prev = shift(ex), flag = ex > shift(ex)),
     by = .(standard_source, standard_version, sex_id)
   ][flag == TRUE]
-  
+
   out$duplicate_pk <- unique(
     x[, .N, by = .(standard_source, standard_version, sex_id, age_start)][N > 1]
   )
-  
+
   out
 }
 
@@ -33,32 +33,32 @@ qc_standard_life_table_single_age <- function(dt,
                                               monotone_versions = c("2010", "GHE", "1990_no_weights_no_discount")) {
   x <- as.data.table(copy(dt))
   out <- list()
-  
+
   out$ex_negative <- x[ex < 0]
   out$bad_age_order <- x[age_end <= age_start]
   out$bad_age_width <- x[age_interval_width != 1L]
   out$units_not_years <- x[units != "years"]
-  
+
   out$duplicate_pk <- unique(
     x[, .N, by = .(standard_source, standard_version, sex_id, exact_age)][N > 1]
   )
-  
+
   out$open_interval_count_bad <- x[
     ,
     .(n_open = sum(age_interval_open, na.rm = TRUE)),
     by = .(standard_source, standard_version, sex_id)
   ][n_open != 1L]
-  
+
   out$open_interval_bad_age <- x[age_interval_open == TRUE & exact_age != terminal_age]
-  
+
   out$terminal_label_bad <- x[
     exact_age == terminal_age & age_group_label != paste0(terminal_age, "+")
   ]
-  
+
   out$age_start_not_exact_age <- x[age_start != exact_age]
   out$age_end_not_plus_one <- x[exact_age < terminal_age & age_end != exact_age + 1L]
   out$open_age_end_bad <- x[exact_age == terminal_age & age_end != terminal_age + 1L]
-  
+
   # Monotonicidad solo donde corresponde
   out$ex_not_monotone_expected <- x[
     standard_version %in% monotone_versions
@@ -67,20 +67,20 @@ qc_standard_life_table_single_age <- function(dt,
     .(exact_age, ex, ex_prev = shift(ex), flag = ex > shift(ex)),
     by = .(standard_source, standard_version, sex_id)
   ][flag == TRUE]
-  
+
   out$terminal_ex_nonpositive <- x[
     standard_version %in% monotone_versions &
       exact_age == terminal_age &
       ex <= terminal_ex_tol
   ]
-  
+
   out
 }
 
 qc_standard_knot_preservation_single_age <- function(dt_single, dt_abridged) {
   x <- as.data.table(copy(dt_single))
   a <- as.data.table(copy(dt_abridged))
-  
+
   a <- a[
     abs(age_start - round(age_start)) < 1e-8,
     .(
@@ -92,7 +92,7 @@ qc_standard_knot_preservation_single_age <- function(dt_single, dt_abridged) {
       ex_abridged = ex
     )
   ]
-  
+
   x2 <- x[, .(
     standard_source,
     standard_version,
@@ -101,14 +101,14 @@ qc_standard_knot_preservation_single_age <- function(dt_single, dt_abridged) {
     exact_age,
     ex_expanded = ex
   )]
-  
+
   out <- merge(
     a,
     x2,
     by = c("standard_source", "standard_version", "sex_id", "sex_source_value", "exact_age"),
     all.x = TRUE
   )
-  
+
   out[
     is.na(ex_expanded) | abs(ex_abridged - ex_expanded) > 1e-8
   ]
@@ -117,13 +117,13 @@ qc_standard_knot_preservation_single_age <- function(dt_single, dt_abridged) {
 write_qc_list <- function(qc_list, qc_dir, prefix = "qc") {
   dir.create(qc_dir, recursive = TRUE, showWarnings = FALSE)
   files <- character()
-  
+
   for (nm in names(qc_list)) {
     fp <- file.path(qc_dir, paste0(prefix, "_", nm, ".csv"))
     fwrite(as.data.table(qc_list[[nm]]), fp)
     files <- c(files, fp)
   }
-  
+
   invisible(files)
 }
 

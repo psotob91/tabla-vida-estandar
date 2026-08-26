@@ -8,11 +8,11 @@ assert_cols_and_types <- function(dt, required_columns) {
   missing_cols <- setdiff(names(required_columns), names(dt))
   if (length(missing_cols) > 0)
     stop("Faltan columnas obligatorias: ", paste(missing_cols, collapse = ", "))
-  
+
   for (nm in names(required_columns)) {
     want <- required_columns[[nm]]
     x <- dt[[nm]]
-    
+
     ok <- switch(
       want,
       integer   = is.integer(x) || (is.numeric(x) && all(is.na(x) | x == as.integer(x))),
@@ -51,24 +51,24 @@ assert_allowed <- function(dt, col, allowed_values, allow_na = TRUE) {
 # ✅ NUEVO: Validador genérico basado 100% en spec
 validate_by_spec <- function(dt, spec) {
   dt <- as.data.table(dt)
-  
+
   assert_cols_and_types(dt, spec$required_columns)
   assert_unique_pk(dt, spec$primary_key)
-  
+
   cts <- spec$constraints
   if (is.null(cts)) return(invisible(TRUE))
-  
+
   for (col in intersect(names(cts), names(dt))) {
     rule <- cts[[col]]
-    
+
     allow_na <- TRUE
     if (!is.null(rule$allow_na)) allow_na <- isTRUE(rule$allow_na)
-    
+
     # allowed_values tiene prioridad
     if (!is.null(rule$allowed_values)) {
       assert_allowed(dt, col, rule$allowed_values, allow_na = allow_na)
     }
-    
+
     # rango (si existe)
     minv <- if (!is.null(rule$min)) rule$min else NULL
     maxv <- if (!is.null(rule$max)) rule$max else NULL
@@ -76,26 +76,26 @@ validate_by_spec <- function(dt, spec) {
       assert_range(dt, col, min = minv, max = maxv, allow_na = allow_na)
     }
   }
-  
+
   invisible(TRUE)
 }
 
 # Mantener el antiguo para proyectos INEI (sin romper nada)
 validate_population_result <- function(dt, spec) {
   dt <- as.data.table(dt)
-  
+
   assert_cols_and_types(dt, spec$required_columns)
   assert_unique_pk(dt, spec$primary_key)
-  
+
   cts <- spec$constraints
-  
+
   assert_range(dt, "year_id", cts$year_id$min, cts$year_id$max, cts$year_id$allow_na)
   assert_range(dt, "age",     cts$age$min,     cts$age$max,     cts$age$allow_na)
-  
+
   assert_allowed(dt, "sex_id", cts$sex_id$allowed_values, cts$sex_id$allow_na)
   assert_allowed(dt, "location_id", cts$location_id$allowed_values, cts$location_id$allow_na)
-  
+
   assert_range(dt, "population", cts$population$min, NULL, cts$population$allow_na)
-  
+
   invisible(TRUE)
 }
