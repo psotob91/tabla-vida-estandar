@@ -41,7 +41,14 @@ fail_run <- function(e) {
   stop(e)
 }
 
-tryCatch({
+# El cuerpo va dentro de una FUNCION, no directamente en el tryCatch.
+#
+# on.exit() registrado desde un bloque de tryCatch a nivel de script no tiene un
+# marco de funcion al que engancharse y no se ejecuta nunca: por eso el borrado
+# del directorio temporal estaba escrito y no hacia nada, y se acumularon nueve
+# tmp_qc_standard_life_table_* (hallazgo F32). Comprobado en el contenedor con
+# R 4.4.1: el mismo on.exit dentro de una funcion si borra.
+cuerpo_qc <- function() {
   p <- ensure_standard_life_table_dirs()
   abr <- fread(file.path(p$STAGING_DIR, "life_table_standard_abridged.csv"), encoding = "UTF-8")
   sa <- fread(file.path(p$STAGING_DIR, "life_table_standard_single_age.csv"), encoding = "UTF-8")
@@ -195,4 +202,6 @@ tryCatch({
 
   register_run_finish(run_id, status = "success")
   message("QC completado: ", pdf_out)
-}, error = fail_run)
+}
+
+tryCatch(cuerpo_qc(), error = fail_run)
