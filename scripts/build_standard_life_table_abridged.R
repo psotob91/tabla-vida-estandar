@@ -15,7 +15,7 @@ VERSION <- "v2.0.0"
 TABLE_NAME <- "life_table_standard_abridged_result"
 RAW_FILE <- "life_expectancy_standard_who_gbd.csv"
 
-run_id <- paste0("build_abridged_", format(Sys.time(), "%Y%m%d_%H%M%S"))
+run_id <- cep_run_id("build_abridged_")
 register_run_start(run_id = run_id, dataset_id = DATASET_ID, version = VERSION)
 
 fail_run <- function(e) {

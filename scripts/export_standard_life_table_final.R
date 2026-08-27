@@ -36,7 +36,7 @@ VERSION <- "v2.0.0"
 TABLE_ABR <- "life_table_standard_abridged_result"
 TABLE_SA <- "life_table_standard_single_age_result"
 
-run_id <- paste0("export_standard_life_table_", format(Sys.time(), "%Y%m%d_%H%M%S"))
+run_id <- cep_run_id("export_standard_life_table_")
 register_run_start(run_id = run_id, dataset_id = DATASET_ID_SA, version = VERSION)
 
 fail_run <- function(e) {

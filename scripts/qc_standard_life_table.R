@@ -33,7 +33,7 @@ ensure_pandoc_for_rmarkdown <- function() {
   invisible(rmarkdown::pandoc_available())
 }
 
-run_id <- paste0("qc_standard_life_table_", format(Sys.time(), "%Y%m%d_%H%M%S"))
+run_id <- cep_run_id("qc_standard_life_table_")
 register_run_start(run_id = run_id, dataset_id = DATASET_ID, version = VERSION)
 
 fail_run <- function(e) {

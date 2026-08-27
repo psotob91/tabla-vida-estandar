@@ -22,3 +22,22 @@ ensure_standard_life_table_dirs <- function() {
 ensure_project_dirs <- function() {
   ensure_standard_life_table_dirs()
 }
+
+# ---------------------------------------------------------------------------
+# cep_run_id(): identificador de corrida, reproducible si se pide.
+#
+# Por que existe: el `format(Sys.time(), ...)` que habia en 28 sitios de cuatro
+# repos era la UNICA razon por la que dos corridas del mismo commit no producian
+# ficheros byte a byte identicos. `tabla-mortalidad-peru` no lo usaba, y por eso
+# era el unico repo que si lo era. La huella de orchestration/baseline.sh tiene
+# que ignorar columnas volatiles justamente por esto.
+#
+# Comportamiento: si CEP_RUN_ID esta definida, se usa tal cual (run_dag.sh la
+# deriva del commit del repo, no del reloj). Si no, se conserva exactamente el
+# comportamiento anterior. Es decir: fuera del DAG nada cambia.
+# ---------------------------------------------------------------------------
+cep_run_id <- function(prefijo = "", formato = "%Y%m%d_%H%M%S") {
+  fijo <- Sys.getenv("CEP_RUN_ID", "")
+  if (nzchar(fijo)) return(paste0(prefijo, fijo))
+  paste0(prefijo, format(Sys.time(), formato))
+}

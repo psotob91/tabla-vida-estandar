@@ -17,7 +17,7 @@ TERMINAL_AGE <- 110L
 SUPPORT_AGE_MAX <- 125L
 TAIL_START_AGE <- 85L
 
-run_id <- paste0("build_single_age_", format(Sys.time(), "%Y%m%d_%H%M%S"))
+run_id <- cep_run_id("build_single_age_")
 register_run_start(run_id = run_id, dataset_id = DATASET_ID, version = VERSION)
 
 fail_run <- function(e) {

@@ -12,7 +12,7 @@ suppressPackageStartupMessages({
 source(here("R", "io_utils.R"))
 source(here("R", "catalog_utils.R"))
 
-run_id <- paste0("standard_life_table_portal_", format(Sys.time(), "%Y%m%d_%H%M%S"))
+run_id <- cep_run_id("standard_life_table_portal_")
 register_run_start(run_id, "standard_life_table", "standard_life_table_portal_v4")
 
 fail_run <- function(e) {
