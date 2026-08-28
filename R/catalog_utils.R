@@ -92,7 +92,7 @@ register_artifact <- function(dataset_id, table_name, version, run_id,
     n_rows = as.integer(n_rows),
     n_cols = as.integer(n_cols),
     file_hash = h,
-    created_at = format(Sys.time(), "%Y-%m-%d %H:%M:%S"),
+    created_at = cep_created_at(),
     notes = notes
   )
 

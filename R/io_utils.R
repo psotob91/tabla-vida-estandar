@@ -41,3 +41,22 @@ cep_run_id <- function(prefijo = "", formato = "%Y%m%d_%H%M%S") {
   if (nzchar(fijo)) return(paste0(prefijo, fijo))
   paste0(prefijo, format(Sys.time(), formato))
 }
+
+# ---------------------------------------------------------------------------
+# cep_created_at(): sello temporal del dato, reproducible si se pide.
+#
+# Por que existe: tras hacer determinista run_id quedaban 2 ficheros distintos
+# byte a byte en pre y 5 en post, AL MISMO COMMIT. La causa era esta columna:
+# un reloj de pared dentro del dato. orchestration/huella_estable.py ya la
+# trataba como volatil (por eso el contenido salia identico), pero volatil no es
+# lo mismo que reproducible.
+#
+# Cuando CEP_CREATED_AT esta definida se usa tal cual; run_dag.sh la deriva de la
+# FECHA DEL COMMIT del repo. Eso es honesto: el sello dice cuando se fijo el
+# codigo que produjo el dato, no cuando se ejecuto la maquina.
+# ---------------------------------------------------------------------------
+cep_created_at <- function(formato = "%Y-%m-%d %H:%M:%S") {
+  fijo <- Sys.getenv("CEP_CREATED_AT", "")
+  if (nzchar(fijo)) return(fijo)
+  format(Sys.time(), formato)
+}
