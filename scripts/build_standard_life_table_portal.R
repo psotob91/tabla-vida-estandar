@@ -35,6 +35,16 @@ tryCatch({
   } else {
     stop("No se encontro la libreria local de plotly.js dentro del paquete plotly.")
   }
+  # F54: el nombre del .min.js estaba escrito a mano en el <script> del HTML. Si el
+  # paquete plotly cambia de version y renombra el fichero, el portal se publica
+  # igual y los graficos no cargan, sin que nada falle. Se descubre el nombre y se
+  # aborta si no hay exactamente uno.
+  plotly_js <- list.files(plotly_dir, pattern = "\\.min\\.js$", recursive = TRUE)
+  plotly_js <- plotly_js[!grepl("locales/", plotly_js, fixed = TRUE)]
+  if (length(plotly_js) != 1L) {
+    stop("QC HARD FAIL (F54): esperaba exactamente un .min.js de plotly en ", plotly_dir,
+         " y encontre ", length(plotly_js), ": ", paste(plotly_js, collapse = ", "))
+  }
 
   abr <- fread(file.path(p$FINAL_DIR, "life_table_standard_reference_abridged.csv"))
   sa <- fread(file.path(p$FINAL_DIR, "life_table_standard_reference_single_age.csv"))
@@ -276,6 +286,14 @@ tryCatch({
   delta <- copy(sa)
   setorder(delta, standard_source, standard_version, sex_source_value, exact_age)
   delta[, delta_ex := c(NA_real_, diff(ex)), by = .(standard_source, standard_version, sex_source_value)]
+  # F55: la ultima fila es el grupo ABIERTO 110+. Restarle la anterior no es un
+  # "delta anual": compara una esperanza de vida a edad exacta con la media de
+  # quien muere dentro de un intervalo sin cierre. Medido, el sesgo es pequeno
+  # (0 a 0,00585 anos frente a maximos de serie de 1,90-2,91), pero contamina el
+  # ranking de saltos, que es justo para lo que sirve esta tabla.
+  if ("age_interval_open" %in% names(delta)) {
+    delta[as.logical(age_interval_open) %in% TRUE, delta_ex := NA_real_]
+  }
   delta[, abs_delta_ex := abs(delta_ex)]
   delta[, age_band := fifelse(exact_age <= 4, "0-4", fifelse(exact_age <= 14, "5-14", fifelse(exact_age <= 29, "15-29", fifelse(exact_age <= 49, "30-49", fifelse(exact_age <= 69, "50-69", "70+")))))]
 
@@ -635,7 +653,7 @@ tryCatch({
   html <- c(
     "<!doctype html><html lang=\"es\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">",
     "<title>Portal integrado - tabla de vida estándar</title><link rel=\"stylesheet\" href=\"assets/portal.css\">",
-    "<script src=\"assets/plotlyjs/plotly-latest.min.js\"></script></head><body>",
+    paste0("<script src=\"assets/plotlyjs/", plotly_js, "\"></script></head><body>"),
     "<header class=\"site-header\"><div class=\"site-header-inner\"><div class=\"eyebrow\">tabla-vida-estándar / portal integrado</div><div class=\"hero-text\"><h1>Tabla de vida estándar: metodología, QC y cola terminal</h1>",
     "<p class=\"lede\">Portal único para revisar la salida final versionada, los controles principales, la forma de e(x) y el cierre terminal. Cada bloque incluye ayuda para interpretar qué patrón resulta esperable y qué hallazgo conviene revisar con más detalle.</p>",
     "<p class=\"hero-meta\">La tabla estándar es una referencia normativa y no se desagrega por región ni año. Utilicen esta página como puerta de entrada: primero revisen el estado general y el QC, luego las curvas, y finalmente la cola terminal cuando necesiten examinar el cierre posterior a 85.</p></div>",

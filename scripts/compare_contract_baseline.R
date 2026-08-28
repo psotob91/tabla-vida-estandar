@@ -104,3 +104,43 @@ out_fp <- file.path(out_dir, "baseline_compare_summary.csv")
 fwrite(results, out_fp)
 if (!file.exists(out_fp)) stop("No se pudo escribir baseline_compare_summary.csv")
 message("Comparacion baseline vs contrato final escrita en: ", out_fp)
+
+# F57: hasta 2026-08-28 este script salia con exit 0 pasara lo que pasara. Sus
+# unicos stop() eran por falta de argumento o por fallo de escritura: NINGUNA
+# discrepancia de contrato producia exit != 0. Y anunciaba exito aunque no hubiera
+# baseline que comparar, que es peor que no comparar: parece un resultado.
+#
+# Es una herramienta manual (README.md:14, docs/RUNBOOK.md:129), asi que quien la
+# invoca necesita el codigo de salida para saber si mirar.
+if (nrow(results) == 0L) {
+  stop("QC HARD FAIL (F57): no habia ningun dataset que comparar. ",
+       "Salir con exito aqui era indistinguible de una comparacion correcta.")
+}
+
+sin_baseline <- results[!exists_baseline | !exists_current]
+if (nrow(sin_baseline) > 0L) {
+  stop("QC HARD FAIL (F57): faltan ficheros para comparar: ",
+       paste(sin_baseline$dataset_id, collapse = ", "))
+}
+
+# Los diccionarios pueden cambiar de checksum por metadatos (value_change_policy),
+# pero su ESTRUCTURA no. Para el resto, el checksum tambien manda.
+estructura_rota <- results[!columns_equal | !classes_equal | !typeof_equal |
+                             (!is.na(key_unique_current) & !key_unique_current)]
+contrato_movido <- results[value_change_policy == "should_match_baseline" & !checksum_equal]
+
+if (nrow(estructura_rota) > 0L || nrow(contrato_movido) > 0L) {
+  message("\n== DISCREPANCIAS ==")
+  if (nrow(estructura_rota) > 0L) {
+    message("  estructura distinta del baseline: ",
+            paste(estructura_rota$dataset_id, collapse = ", "))
+  }
+  if (nrow(contrato_movido) > 0L) {
+    message("  contenido distinto del baseline:  ",
+            paste(contrato_movido$dataset_id, collapse = ", "))
+  }
+  message("  Detalle en: ", out_fp)
+  quit(save = "no", status = 1L)
+}
+
+message("Sin discrepancias: ", nrow(results), " dataset(s) coinciden con el baseline.")

@@ -151,7 +151,10 @@ tryCatch({
   )
   writeLines(html, file.path(portal_dir, page_name), useBytes = TRUE)
 
-  for (fp in c(file.path(portal_dir, page_name), file.path(download_dir, "terminal_plot_manifest.csv"), file.path(download_dir, "single_age_tail_selected_methods.csv"), file.path(download_dir, "qc_standard_life_table_terminal_summary.csv"), file.path(plot_dir, manifest_dt$curve_png), file.path(plot_dir, manifest_dt$delta_png), file.path(plot_dir, manifest_dt$curvature_png))) {
+  # F59: rel() (:47) devuelve la ruta relativa a portal_dir, no a plot_dir. Anteponer
+  # plot_dir la componia mal, file.exists() daba FALSE y los 18 PNG se publicaban
+  # sin registrar: 56 artefactos del modulo en el catalogo y ninguno .png [verificado].
+  for (fp in c(file.path(portal_dir, page_name), file.path(download_dir, "terminal_plot_manifest.csv"), file.path(download_dir, "single_age_tail_selected_methods.csv"), file.path(download_dir, "qc_standard_life_table_terminal_summary.csv"), file.path(portal_dir, manifest_dt$curve_png), file.path(portal_dir, manifest_dt$delta_png), file.path(portal_dir, manifest_dt$curvature_png))) {
     if (file.exists(fp)) register_artifact("standard_life_table", "standard_life_table_terminal_module", "standard_life_table_terminal_module_v1", run_id, if (tools::file_ext(fp) %in% c("html", "pdf")) "report" else "qc", fp, notes = "Modulo terminal de tabla de vida estandar.")
   }
 
